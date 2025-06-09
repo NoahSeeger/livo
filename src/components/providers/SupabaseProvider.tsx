@@ -5,7 +5,11 @@ import { createBrowserClient } from "@supabase/ssr";
 import { useRouter } from "next/navigation";
 
 const Context = createContext<
-  ReturnType<typeof createBrowserClient> | undefined
+  | {
+      supabase: ReturnType<typeof createBrowserClient>;
+      session: any;
+    }
+  | undefined
 >(undefined);
 
 export default function SupabaseProvider({
@@ -19,13 +23,20 @@ export default function SupabaseProvider({
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
     )
   );
-
+  const [session, setSession] = useState<any>(null);
   const router = useRouter();
 
   useEffect(() => {
+    // Get initial session
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session);
+    });
+
+    // Listen for auth changes
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange(() => {
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      setSession(session);
       router.refresh();
     });
 
@@ -34,7 +45,11 @@ export default function SupabaseProvider({
     };
   }, [router, supabase]);
 
-  return <Context.Provider value={supabase}>{children}</Context.Provider>;
+  return (
+    <Context.Provider value={{ supabase, session }}>
+      {children}
+    </Context.Provider>
+  );
 }
 
 export const useSupabase = () => {

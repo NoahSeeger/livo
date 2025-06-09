@@ -2,64 +2,124 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { createBrowserClient } from "@supabase/ssr";
+import { Home, Map, Target, LogOut } from "lucide-react";
+import { useSupabase } from "./providers/SupabaseProvider";
 
 export default function Navigation() {
   const pathname = usePathname();
   const router = useRouter();
+  const { supabase, session } = useSupabase();
 
   const handleSignOut = async () => {
-    const supabase = createBrowserClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-    );
-
-    await supabase.auth.signOut();
-    router.push("/auth/signin");
-    router.refresh();
+    try {
+      await supabase.auth.signOut();
+      // Force a hard navigation to ensure the session is cleared
+      window.location.href = "/welcome";
+    } catch (error) {
+      console.error("Error signing out:", error);
+    }
   };
 
-  return (
-    <nav className="bg-surface shadow-sm">
-      <div className="container mx-auto px-4">
-        <div className="flex justify-between items-center h-16">
-          <Link
-            href="/"
-            className="text-2xl  font-bold text-primary hover:text-primary-dark transition-colors"
-          >
-            Livo
-          </Link>
+  const isActive = (path: string) => pathname === path;
 
-          <div className="flex items-center space-x-6">
+  if (!session) return null;
+
+  return (
+    <>
+      {/* Desktop Navigation */}
+      <nav className="hidden md:block bg-surface shadow-sm">
+        <div className="container mx-auto px-4">
+          <div className="flex justify-between items-center h-16">
             <Link
-              href="/goals"
-              className={`text-sm font-medium transition-colors ${
-                pathname === "/goals"
-                  ? "text-primary"
-                  : "text-text-light hover:text-primary"
-              }`}
+              href="/"
+              className="text-2xl font-bold text-orange-500 hover:text-orange-600 transition-colors"
             >
-              Goals
+              Livo
             </Link>
-            <Link
-              href="/travel"
-              className={`text-sm font-medium transition-colors ${
-                pathname === "/travel"
-                  ? "text-primary"
-                  : "text-text-light hover:text-primary"
-              }`}
-            >
-              Travel Map
-            </Link>
-            <button
-              onClick={handleSignOut}
-              className="text-sm font-medium text-text-light hover:text-primary transition-colors"
-            >
-              Sign Out
-            </button>
+
+            <div className="flex items-center space-x-6">
+              <Link
+                href="/goals"
+                className={`text-sm font-medium transition-colors ${
+                  isActive("/goals")
+                    ? "text-orange-500"
+                    : "text-gray-600 hover:text-orange-500"
+                }`}
+              >
+                Goals
+              </Link>
+              <Link
+                href="/travel"
+                className={`text-sm font-medium transition-colors ${
+                  isActive("/travel")
+                    ? "text-orange-500"
+                    : "text-gray-600 hover:text-orange-500"
+                }`}
+              >
+                Travel Map
+              </Link>
+              <button
+                onClick={handleSignOut}
+                className="text-sm font-medium text-gray-600 hover:text-orange-500 transition-colors"
+              >
+                Sign Out
+              </button>
+            </div>
           </div>
         </div>
-      </div>
-    </nav>
+      </nav>
+
+      {/* Mobile Navigation */}
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200">
+        <div className="flex justify-around items-center h-16">
+          <Link
+            href="/"
+            className={`flex flex-col items-center justify-center w-full h-full ${
+              isActive("/")
+                ? "text-orange-500"
+                : "text-gray-600 hover:text-orange-500"
+            }`}
+          >
+            <Home size={24} />
+            <span className="text-xs mt-1">Home</span>
+          </Link>
+
+          <Link
+            href="/goals"
+            className={`flex flex-col items-center justify-center w-full h-full ${
+              isActive("/goals")
+                ? "text-orange-500"
+                : "text-gray-600 hover:text-orange-500"
+            }`}
+          >
+            <Target size={24} />
+            <span className="text-xs mt-1">Goals</span>
+          </Link>
+
+          <Link
+            href="/travel"
+            className={`flex flex-col items-center justify-center w-full h-full ${
+              isActive("/travel")
+                ? "text-orange-500"
+                : "text-gray-600 hover:text-orange-500"
+            }`}
+          >
+            <Map size={24} />
+            <span className="text-xs mt-1">Travel</span>
+          </Link>
+
+          <button
+            onClick={handleSignOut}
+            className="flex flex-col items-center justify-center w-full h-full text-gray-600 hover:text-orange-500"
+          >
+            <LogOut size={24} />
+            <span className="text-xs mt-1">Sign Out</span>
+          </button>
+        </div>
+      </nav>
+
+      {/* Add padding to the bottom of the content on mobile to account for the fixed navigation */}
+      <div className="md:hidden pb-16" />
+    </>
   );
 }

@@ -29,8 +29,8 @@ export default function SignInPage() {
 
       if (error) throw error;
 
-      router.push("/goals");
-      router.refresh();
+      // Force a hard navigation to ensure the session is set
+      window.location.href = "/goals";
     } catch (error) {
       setError(error instanceof Error ? error.message : "An error occurred");
     }
