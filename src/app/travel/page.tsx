@@ -4,6 +4,12 @@ import WorldMap from "@/components/WorldMap";
 import { useState, useMemo, useEffect, useCallback } from "react";
 import { Search, MapPin, Heart, ChevronRight } from "lucide-react";
 import useEmblaCarousel from "embla-carousel-react";
+import {
+  getCurrentUserId,
+  getTravelExperiences,
+  upsertTravelExperience,
+  deleteTravelExperience,
+} from "@/lib/travelDb"; // Import Supabase functions
 
 // Removed getCountryFlag utility function as flag is directly from API
 
@@ -13,6 +19,7 @@ interface CountryData {
   name: string;
   status: CountryStatus;
   flag: string;
+  cca2: string; // Add cca2 for database interaction
 }
 
 // Define different map views for the carousel
@@ -25,6 +32,7 @@ const mapViews = [
 ];
 
 export default function TravelPage() {
+  const [userId, setUserId] = useState<string | null>(null); // State to hold the current user ID
   const [selectedCountries, setSelectedCountries] = useState<
     Record<string, CountryData>
   >({});
@@ -53,33 +61,68 @@ export default function TravelPage() {
   }, [emblaApi, onSelect]);
 
   useEffect(() => {
-    const fetchCountries = async () => {
-      try {
-        setLoading(true);
-        setError(null);
-        // Request specific fields to optimize payload: name and flag
-        const response = await fetch(
-          "https://restcountries.com/v3.1/all?fields=name,flag"
+    const loadAllData = async () => {
+      setLoading(true);
+      setError(null);
+
+      // 1. Get User ID
+      const currentUserId = await getCurrentUserId();
+      if (!currentUserId) {
+        setError(
+          "User not authenticated. Please sign in to track your travels."
         );
-        if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`);
+        setLoading(false);
+        return;
+      }
+      setUserId(currentUserId);
+
+      try {
+        // 2. Fetch all countries from restcountries.com
+        const [countriesResponse, userExperiences] = await Promise.all([
+          fetch("https://restcountries.com/v3.1/all?fields=name,flag,cca2"),
+          getTravelExperiences(currentUserId), // 3. Fetch user's saved experiences
+        ]);
+
+        if (!countriesResponse.ok) {
+          throw new Error(`HTTP error! status: ${countriesResponse.status}`);
         }
-        const data = await response.json();
+        const countriesData = await countriesResponse.json();
 
-        const transformedData: CountryData[] = data.map((country: any) => ({
-          name: country.name.common, // Correctly access the common name
-          status: "none", // Default to none
-          flag: country.flag, // Directly use the emoji flag from the API
-        }));
+        const initialSelectedCountries: Record<string, CountryData> = {};
 
-        // Filter out any potential duplicates by name, as country names should be unique keys
+        // Transform and merge country data with user experiences
+        const transformedCountries: CountryData[] = countriesData.map(
+          (country: any) => {
+            const commonName = country.name.common;
+            const userExperience = userExperiences.find(
+              (exp) => exp.country_code === country.cca2
+            );
+
+            let status: CountryStatus = "none";
+            if (userExperience) {
+              status = userExperience.visited ? "visited" : "bucket-list";
+            }
+
+            const countryDataItem: CountryData = {
+              name: commonName,
+              status: status,
+              flag: country.flag,
+              cca2: country.cca2,
+            };
+            initialSelectedCountries[commonName] = countryDataItem;
+            return countryDataItem;
+          }
+        );
+
+        // Ensure unique countries by name in the fetched list
         const uniqueTransformedData = Array.from(
-          new Set(transformedData.map((c) => c.name))
+          new Set(transformedCountries.map((c) => c.name))
         )
-          .map((name) => transformedData.find((c) => c.name === name)!)
-          .filter(Boolean); // Ensure no undefined entries
+          .map((name) => transformedCountries.find((c) => c.name === name)!)
+          .filter(Boolean);
 
         setFetchedCountries(uniqueTransformedData);
+        setSelectedCountries(initialSelectedCountries); // Set initial selected countries based on DB
       } catch (e: any) {
         setError(e.message);
       } finally {
@@ -87,14 +130,14 @@ export default function TravelPage() {
       }
     };
 
-    fetchCountries();
-  }, []); // Run once on component mount
+    loadAllData();
+  }, []); // Empty dependency array means this runs once on mount
 
   const allCountries = useMemo(() => {
     if (fetchedCountries.length > 0) {
       return fetchedCountries.map((fc) => ({
         ...fc,
-        status: selectedCountries[fc.name]?.status || "none", // Preserve selected status
+        status: selectedCountries[fc.name]?.status || "none", // Ensure local state reflects status
       }));
     }
     return []; // Return empty if not loaded
@@ -121,28 +164,53 @@ export default function TravelPage() {
     };
   }, [selectedCountries, allCountries]);
 
-  const handleCountryToggle = (countryName: string) => {
-    setSelectedCountries((prev) => {
-      const currentStatus = prev[countryName]?.status || "none";
-      const newStatus =
-        currentStatus === "none"
-          ? "visited"
-          : currentStatus === "visited"
-          ? "bucket-list"
-          : "none";
+  const handleCountryToggle = async (countryName: string) => {
+    if (!userId) {
+      alert("Please sign in to save your progress!"); // User feedback if not authenticated
+      return;
+    }
 
-      const country = allCountries.find((c) => c.name === countryName);
-      if (!country) return prev;
+    const country = allCountries.find((c) => c.name === countryName);
+    if (!country) return;
 
-      return {
+    // Calculate the new status outside the setState callback
+    const currentStatus = selectedCountries[countryName]?.status || "none";
+    let newStatus: CountryStatus = "none";
+
+    if (currentStatus === "none") {
+      newStatus = "visited";
+    } else if (currentStatus === "visited") {
+      newStatus = "bucket-list";
+    } else {
+      // currentStatus === "bucket-list"
+      newStatus = "none";
+    }
+
+    // Update UI
+    setSelectedCountries((prev) => ({
+      ...prev,
+      [countryName]: {
+        ...country, // Keep other country data (flag, cca2)
+        status: newStatus,
+      },
+    }));
+
+    // --- Save to Database ---
+    try {
+      if (newStatus === "none") {
+        await deleteTravelExperience(userId, country.cca2);
+      } else {
+        await upsertTravelExperience(userId, country.cca2, newStatus);
+      }
+    } catch (dbError: any) {
+      console.error("Failed to update database:", dbError);
+      // Revert UI change if DB update fails
+      setSelectedCountries((prev) => ({
         ...prev,
-        [countryName]: {
-          name: country.name,
-          status: newStatus,
-          flag: country.flag, // Use flag from fetched data
-        },
-      };
-    });
+        [countryName]: { ...country, status: currentStatus }, // Revert to old status
+      }));
+      alert("Failed to save changes. Please try again.");
+    }
   };
 
   const filteredCountries = useMemo(() => {

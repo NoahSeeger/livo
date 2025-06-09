@@ -3,6 +3,7 @@ import { Inter } from "next/font/google";
 import "./globals.css";
 import Navigation from "@/components/Navigation";
 import { createClient } from "@/lib/supabaseServer";
+import SupabaseProvider from "@/components/providers/SupabaseProvider";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -12,22 +13,15 @@ export const metadata: Metadata = {
     "Track your life goals and travel experiences in one beautiful app",
 };
 
-export default async function RootLayout({
+export default function RootLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  const supabase = createClient();
-
-  const {
-    data: { session },
-  } = await supabase.auth.getSession();
-
   return (
     <html lang="en">
       <body className={`${inter.className} min-h-screen bg-background`}>
-        {session && <Navigation />}
-        <main className="container mx-auto px-4 py-8">{children}</main>
+        <SupabaseProvider>{children}</SupabaseProvider>
       </body>
     </html>
   );

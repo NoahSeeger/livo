@@ -13,9 +13,11 @@
     "@supabase/supabase-js": "^2.50.0",
     "embla-carousel": "^8.6.0",
     "embla-carousel-react": "^8.6.0",
+    "lucide-react": "^0.513.0",
     "next": "15.3.3",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
+    "react-simple-maps": "^3.0.0",
     "react-swipeable": "^7.0.2"
   },
   "devDependencies": {
