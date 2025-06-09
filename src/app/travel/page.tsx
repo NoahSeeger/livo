@@ -1,209 +1,11 @@
 "use client";
 
 import WorldMap from "@/components/WorldMap";
-import { useState, useMemo } from "react";
-import { Search, MapPin, Heart, Plane, Plus, ChevronRight } from "lucide-react";
+import { useState, useMemo, useEffect, useCallback } from "react";
+import { Search, MapPin, Heart, ChevronRight } from "lucide-react";
+import useEmblaCarousel from "embla-carousel-react";
 
-// Utility function to get flag emoji (expanded for more coverage)
-const getCountryFlag = (countryName: string): string => {
-  const flags: Record<string, string> = {
-    Afghanistan: "🇦🇫",
-    Albania: "🇦🇱",
-    Algeria: "🇩🇿",
-    Andorra: "🇦🇩",
-    Angola: "🇦🇴",
-    "Antigua and Barbuda": "🇦🇬",
-    Argentina: "🇦🇷",
-    Armenia: "🇦🇲",
-    Australia: "🇦🇺",
-    Austria: "🇦🇹",
-    Azerbaijan: "🇦🇿",
-    Bahamas: "🇧🇸",
-    Bahrain: "🇧🇭",
-    Bangladesh: "🇧🇩",
-    Barbados: "🇧🇧",
-    Belarus: "🇧🇾",
-    Belgium: "🇧🇪",
-    Belize: "🇧🇿",
-    Benin: "🇧🇯",
-    Bhutan: "🇧🇹",
-    Bolivia: "🇧🇴",
-    "Bosnia and Herzegovina": "🇧🇦",
-    Botswana: "🇧🇼",
-    Brazil: "🇧🇷",
-    Brunei: "🇧🇳",
-    Bulgaria: "🇧🇬",
-    "Burkina Faso": "🇧🇫",
-    Burundi: "🇧🇮",
-    "Cabo Verde": "🇨🇻",
-    Cambodia: "🇰🇭",
-    Cameroon: "🇨🇲",
-    Canada: "🇨🇦",
-    "Central African Republic": "🇨🇫",
-    Chad: "🇹🇩",
-    Chile: "🇨🇱",
-    China: "🇨🇳",
-    Colombia: "🇨🇴",
-    Comoros: "🇰🇲",
-    Congo: "🇨🇬",
-    "Costa Rica": "🇨🇷",
-    Croatia: "🇭🇷",
-    Cuba: "🇨🇺",
-    Cyprus: "🇨🇾",
-    "Czech Republic": "🇨🇿",
-    Denmark: "🇩🇰",
-    Djibouti: "🇩🇯",
-    Dominica: "🇩🇲",
-    "Dominican Republic": "🇩🇴",
-    Ecuador: "🇪🇨",
-    Egypt: "🇪🇬",
-    "El Salvador": "🇸🇻",
-    "Equatorial Guinea": "🇬🇶",
-    Eritrea: "🇪🇷",
-    Estonia: "🇪🇪",
-    Eswatini: "🇸🇿",
-    Ethiopia: "🇪🇹",
-    Fiji: "🇫🇯",
-    Finland: "🇫🇮",
-    France: "🇫🇷",
-    Gabon: "🇬🇦",
-    Gambia: "🇬🇲",
-    Georgia: "🇬🇪",
-    Germany: "🇩🇪",
-    Ghana: "🇬🇭",
-    Greece: "🇬🇷",
-    Grenada: "🇬🇩",
-    Guatemala: "🇬🇹",
-    Guinea: "🇬🇳",
-    "Guinea-Bissau": "🇬🇼",
-    Guyana: "🇬🇾",
-    Haiti: "🇭🇹",
-    Honduras: "🇭🇳",
-    Hungary: "🇭🇺",
-    Iceland: "🇮🇸",
-    India: "🇮🇳",
-    Indonesia: "🇮🇩",
-    Iran: "🇮🇷",
-    Iraq: "🇮🇶",
-    Ireland: "🇮🇪",
-    Israel: "🇮🇱",
-    Italy: "🇮🇹",
-    Jamaica: "🇯🇲",
-    Japan: "🇯🇵",
-    Jordan: "🇯🇴",
-    Kazakhstan: "🇰🇿",
-    Kenya: "🇰🇪",
-    Kiribati: "🇰🇮",
-    Kuwait: "🇰🇼",
-    Kyrgyzstan: "🇰🇬",
-    Laos: "🇱🇦",
-    Latvia: "🇱🇻",
-    Lebanon: "🇱🇧",
-    Lesotho: "🇱🇸",
-    Liberia: "🇱🇷",
-    Libya: "🇱🇾",
-    Liechtenstein: "🇱🇮",
-    Lithuania: "🇱🇹",
-    Luxembourg: "🇱🇺",
-    Madagascar: "🇲🇬",
-    Malawi: "🇲🇼",
-    Malaysia: "🇲🇾",
-    Maldives: "🇲🇻",
-    Mali: "🇲🇱",
-    Malta: "🇲🇹",
-    "Marshall Islands": "🇲🇭",
-    Mauritania: "🇲🇷",
-    Mauritius: "🇲🇺",
-    Mexico: "🇲🇽",
-    Micronesia: "🇫🇲",
-    Moldova: "🇲🇩",
-    Monaco: "🇲🇨",
-    Mongolia: "🇲🇳",
-    Montenegro: "🇲🇪",
-    Morocco: "🇲🇦",
-    Mozambique: "🇲🇿",
-    Myanmar: "🇲🇲",
-    Namibia: "🇳🇦",
-    Nauru: "🇳🇷",
-    Nepal: "🇳🇵",
-    Netherlands: "🇳🇱",
-    "New Zealand": "🇳🇿",
-    Nicaragua: "🇳🇮",
-    Niger: "🇳🇪",
-    Nigeria: "🇳🇬",
-    "North Korea": "🇰🇵",
-    "North Macedonia": "🇲🇰",
-    Norway: "🇳🇴",
-    Oman: "🇴🇲",
-    Pakistan: "🇵🇰",
-    Palau: "🇵🇼",
-    Palestine: "🇵🇸",
-    Panama: "🇵🇦",
-    "Papua New Guinea": "🇵🇬",
-    Paraguay: "🇵🇾",
-    Peru: "🇵🇪",
-    Philippines: "🇵🇭",
-    Poland: "🇵🇱",
-    Portugal: "🇵🇹",
-    Qatar: "🇶🇦",
-    Romania: "🇷🇴",
-    Russia: "🇷🇺",
-    Rwanda: "🇷🇼",
-    "Saint Kitts and Nevis": "🇰🇳",
-    "Saint Lucia": "🇱🇨",
-    "Saint Vincent and the Grenadines": "🇻🇨",
-    Samoa: "🇼🇸",
-    "San Marino": "🇸🇲",
-    "Sao Tome and Principe": "🇸🇹",
-    "Saudi Arabia": "🇸🇦",
-    Senegal: "🇸🇳",
-    Serbia: "🇷🇸",
-    Seychelles: "🇸🇨",
-    "Sierra Leone": "🇸🇱",
-    Singapore: "🇸🇬",
-    Slovakia: "🇸🇰",
-    Slovenia: "🇸🇮",
-    "Solomon Islands": "🇸🇧",
-    Somalia: "🇸🇴",
-    "South Africa": "🇿🇦",
-    "South Korea": "🇰🇷",
-    "South Sudan": "🇸🇸",
-    Spain: "🇪🇸",
-    "Sri Lanka": "🇱🇰",
-    Sudan: "🇸🇩",
-    Suriname: "🇸🇷",
-    Sweden: "🇸🇪",
-    Switzerland: "🇨🇭",
-    Syria: "🇸🇾",
-    Taiwan: "🇹🇼",
-    Tajikistan: "🇹🇯",
-    Tanzania: "🇹🇿",
-    Thailand: "🇹🇭",
-    "Timor-Leste": "🇹🇱",
-    Togo: "🇹🇬",
-    Tonga: "🇹🇴",
-    "Trinidad and Tobago": "🇹🇹",
-    Tunisia: "🇹🇳",
-    Turkey: "🇹🇷",
-    Turkmenistan: "🇹🇲",
-    Tuvalu: "🇹🇻",
-    Uganda: "🇺🇬",
-    Ukraine: "🇺🇦",
-    "United Arab Emirates": "🇦🇪",
-    "United Kingdom": "🇬🇧",
-    "United States": "🇺🇸",
-    Uruguay: "🇺🇾",
-    Uzbekistan: "🇺🇿",
-    Vanuatu: "🇻🇺",
-    "Vatican City": "🇻🇦",
-    Venezuela: "🇻🇪",
-    Vietnam: "🇻🇳",
-    Yemen: "🇾🇪",
-    Zambia: "🇿🇲",
-    Zimbabwe: "🇿🇼",
-  };
-  return flags[countryName] || "🏳️"; // Default to white flag
-};
+// Removed getCountryFlag utility function as flag is directly from API
 
 type CountryStatus = "visited" | "bucket-list" | "none";
 
@@ -213,222 +15,91 @@ interface CountryData {
   flag: string;
 }
 
+// Define different map views for the carousel
+const mapViews = [
+  // Adjusted center and scale for "World" to effectively remove Antarctica
+  { name: "World", projectionConfig: { scale: 120, center: [0, 10] } },
+  { name: "Europe", projectionConfig: { scale: 400, center: [15, 50] } },
+  { name: "Americas", projectionConfig: { scale: 150, center: [-80, 0] } },
+  { name: "Asia", projectionConfig: { scale: 200, center: [90, 20] } },
+];
+
 export default function TravelPage() {
   const [selectedCountries, setSelectedCountries] = useState<
     Record<string, CountryData>
   >({});
   const [searchQuery, setSearchQuery] = useState("");
+  const [currentMapViewIndex, setCurrentMapViewIndex] = useState(0); // State for carousel index
+  const [fetchedCountries, setFetchedCountries] = useState<CountryData[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  // Comprehensive list of countries to ensure unique keys
+  // Embla Carousel Hook
+  const [emblaRef, emblaApi] = useEmblaCarousel({ loop: false });
+
+  // Update currentMapViewIndex when Embla slide changes
+  const onSelect = useCallback(() => {
+    if (!emblaApi) return;
+    setCurrentMapViewIndex(emblaApi.selectedScrollSnap());
+  }, [emblaApi, setCurrentMapViewIndex]);
+
+  useEffect(() => {
+    if (!emblaApi) return;
+    onSelect(); // Set initial index
+    emblaApi.on("select", onSelect); // Listen for slide changes
+    return () => {
+      emblaApi.off("select", onSelect); // Clean up event listener
+    };
+  }, [emblaApi, onSelect]);
+
+  useEffect(() => {
+    const fetchCountries = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        // Request specific fields to optimize payload: name and flag
+        const response = await fetch(
+          "https://restcountries.com/v3.1/all?fields=name,flag"
+        );
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        const data = await response.json();
+
+        const transformedData: CountryData[] = data.map((country: any) => ({
+          name: country.name.common, // Correctly access the common name
+          status: "none", // Default to none
+          flag: country.flag, // Directly use the emoji flag from the API
+        }));
+
+        // Filter out any potential duplicates by name, as country names should be unique keys
+        const uniqueTransformedData = Array.from(
+          new Set(transformedData.map((c) => c.name))
+        )
+          .map((name) => transformedData.find((c) => c.name === name)!)
+          .filter(Boolean); // Ensure no undefined entries
+
+        setFetchedCountries(uniqueTransformedData);
+      } catch (e: any) {
+        setError(e.message);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchCountries();
+  }, []); // Run once on component mount
+
   const allCountries = useMemo(() => {
-    // This array should ideally come from a static JSON file or API for robustness
-    const countries = [
-      "Afghanistan",
-      "Albania",
-      "Algeria",
-      "Andorra",
-      "Angola",
-      "Antigua and Barbuda",
-      "Argentina",
-      "Armenia",
-      "Australia",
-      "Austria",
-      "Azerbaijan",
-      "Bahamas",
-      "Bahrain",
-      "Bangladesh",
-      "Barbados",
-      "Belarus",
-      "Belgium",
-      "Belize",
-      "Benin",
-      "Bhutan",
-      "Bolivia",
-      "Bosnia and Herzegovina",
-      "Botswana",
-      "Brazil",
-      "Brunei",
-      "Bulgaria",
-      "Burkina Faso",
-      "Burundi",
-      "Cabo Verde",
-      "Cambodia",
-      "Cameroon",
-      "Canada",
-      "Central African Republic",
-      "Chad",
-      "Chile",
-      "China",
-      "Colombia",
-      "Comoros",
-      "Congo",
-      "Costa Rica",
-      "Croatia",
-      "Cuba",
-      "Cyprus",
-      "Czech Republic",
-      "Denmark",
-      "Djibouti",
-      "Dominica",
-      "Dominican Republic",
-      "Ecuador",
-      "Egypt",
-      "El Salvador",
-      "Equatorial Guinea",
-      "Eritrea",
-      "Estonia",
-      "Eswatini",
-      "Ethiopia",
-      "Fiji",
-      "Finland",
-      "France",
-      "Gabon",
-      "Gambia",
-      "Georgia",
-      "Germany",
-      "Ghana",
-      "Greece",
-      "Grenada",
-      "Guatemala",
-      "Guinea",
-      "Guinea-Bissau",
-      "Guyana",
-      "Haiti",
-      "Honduras",
-      "Hungary",
-      "Iceland",
-      "India",
-      "Indonesia",
-      "Iran",
-      "Iraq",
-      "Ireland",
-      "Israel",
-      "Italy",
-      "Jamaica",
-      "Japan",
-      "Jordan",
-      "Kazakhstan",
-      "Kenya",
-      "Kiribati",
-      "Kuwait",
-      "Kyrgyzstan",
-      "Laos",
-      "Latvia",
-      "Lebanon",
-      "Lesotho",
-      "Liberia",
-      "Libya",
-      "Liechtenstein",
-      "Lithuania",
-      "Luxembourg",
-      "Madagascar",
-      "Malawi",
-      "Malaysia",
-      "Maldives",
-      "Mali",
-      "Malta",
-      "Marshall Islands",
-      "Mauritania",
-      "Mauritius",
-      "Mexico",
-      "Micronesia",
-      "Moldova",
-      "Monaco",
-      "Mongolia",
-      "Montenegro",
-      "Morocco",
-      "Mozambique",
-      "Myanmar",
-      "Namibia",
-      "Nauru",
-      "Nepal",
-      "Netherlands",
-      "New Zealand",
-      "Nicaragua",
-      "Niger",
-      "Nigeria",
-      "North Korea",
-      "North Macedonia",
-      "Norway",
-      "Oman",
-      "Pakistan",
-      "Palau",
-      "Palestine",
-      "Panama",
-      "Papua New Guinea",
-      "Paraguay",
-      "Peru",
-      "Philippines",
-      "Poland",
-      "Portugal",
-      "Qatar",
-      "Romania",
-      "Russia",
-      "Rwanda",
-      "Saint Kitts and Nevis",
-      "Saint Lucia",
-      "Saint Vincent and the Grenadines",
-      "Samoa",
-      "San Marino",
-      "Sao Tome and Principe",
-      "Saudi Arabia",
-      "Senegal",
-      "Serbia",
-      "Seychelles",
-      "Sierra Leone",
-      "Singapore",
-      "Slovakia",
-      "Slovenia",
-      "Solomon Islands",
-      "Somalia",
-      "South Africa",
-      "South Korea",
-      "South Sudan",
-      "Spain",
-      "Sri Lanka",
-      "Sudan",
-      "Suriname",
-      "Sweden",
-      "Switzerland",
-      "Syria",
-      "Taiwan",
-      "Tajikistan",
-      "Tanzania",
-      "Thailand",
-      "Timor-Leste",
-      "Togo",
-      "Tonga",
-      "Trinidad and Tobago",
-      "Tunisia",
-      "Turkey",
-      "Turkmenistan",
-      "Tuvalu",
-      "Uganda",
-      "Ukraine",
-      "United Arab Emirates",
-      "United Kingdom",
-      "United States",
-      "Uruguay",
-      "Uzbekistan",
-      "Vanuatu",
-      "Vatican City",
-      "Venezuela",
-      "Vietnam",
-      "Yemen",
-      "Zambia",
-      "Zimbabwe",
-    ];
-    // Ensure uniqueness if the source list might have duplicates, though this manual list is unique.
-    const uniqueCountries = Array.from(new Set(countries));
+    if (fetchedCountries.length > 0) {
+      return fetchedCountries.map((fc) => ({
+        ...fc,
+        status: selectedCountries[fc.name]?.status || "none", // Preserve selected status
+      }));
+    }
+    return []; // Return empty if not loaded
+  }, [fetchedCountries, selectedCountries]);
 
-    return uniqueCountries.map((name) => ({
-      name,
-      status: selectedCountries[name]?.status || "none",
-      flag: getCountryFlag(name),
-    }));
-  }, [selectedCountries]); // Re-calculate when selectedCountries changes
-
-  // Calculate statistics
   const stats = useMemo(() => {
     const totalCountriesInList = allCountries.length;
     const visitedCount = Object.values(selectedCountries).filter(
@@ -460,12 +131,15 @@ export default function TravelPage() {
           ? "bucket-list"
           : "none";
 
+      const country = allCountries.find((c) => c.name === countryName);
+      if (!country) return prev;
+
       return {
         ...prev,
         [countryName]: {
-          name: countryName,
+          name: country.name,
           status: newStatus,
-          flag: getCountryFlag(countryName),
+          flag: country.flag, // Use flag from fetched data
         },
       };
     });
@@ -488,13 +162,13 @@ export default function TravelPage() {
         // Then alphabetically by name
         return a.name.localeCompare(b.name);
       });
-  }, [allCountries, searchQuery, selectedCountries]); // Dependency on selectedCountries for sorting by status
+  }, [allCountries, searchQuery, selectedCountries]);
 
   // Circular progress bar styling (for percentages)
   const calculateStrokeDasharray = (percentage: number) => {
     const radius = 20; // Matches inner circle radius
     const circumference = 2 * Math.PI * radius;
-    return `${circumference} ${circumference}`; // Full circumference and then another for offset
+    return `${circumference} ${circumference}`;
   };
 
   const calculateStrokeDashoffset = (percentage: number) => {
@@ -509,21 +183,51 @@ export default function TravelPage() {
       <div className="pt-10 pb-4 px-6">
         <div className="flex justify-between items-center mb-6">
           <span className="text-4xl font-light text-orange-500">livo</span>
-          <div className="flex gap-4">
-            <button className="p-2 rounded-full bg-white border border-orange-100 text-orange-600 hover:bg-orange-50 transition-colors">
-              <Plane className="h-5 w-5" />
-            </button>
-            <button className="p-2 rounded-full bg-white border border-orange-100 text-orange-600 hover:bg-orange-50 transition-colors">
-              <Plus className="h-5 w-5" />
-            </button>
-          </div>
+          {/* Removed Plane and Plus buttons - as per user request */}
         </div>
-        <h1 className="text-3xl font-bold text-gray-800">Your World Map</h1>
+        {/* Removed "Your World Map" text - as per user request */}
       </div>
 
-      {/* Map Section - Seamless & Static */}
-      <div className="mx-auto bg-white overflow-hidden">
-        <WorldMap selectedCountries={selectedCountries} />
+      {/* Map Section - Seamless & Static with Embla Carousel */}
+      <div
+        className="mx-auto bg-white overflow-hidden relative embla"
+        ref={emblaRef}
+      >
+        <div className="embla__container flex">
+          {mapViews.map((view, index) => (
+            <div className="embla__slide flex-none w-full" key={index}>
+              {loading ? (
+                <div className="w-full aspect-[2/1] flex items-center justify-center text-gray-600">
+                  Loading map data...
+                </div>
+              ) : error ? (
+                <div className="w-full aspect-[2/1] flex items-center justify-center text-red-500">
+                  Error loading map: {error}
+                </div>
+              ) : (
+                <WorldMap
+                  selectedCountries={selectedCountries}
+                  projectionConfig={view.projectionConfig}
+                />
+              )}
+            </div>
+          ))}
+        </div>
+
+        {/* Carousel Dots - now driven by Embla API */}
+        <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 flex gap-2">
+          {mapViews.map((_, index) => (
+            <button
+              key={index}
+              onClick={() => emblaApi && emblaApi.scrollTo(index)}
+              className={`w-2 h-2 rounded-full ${
+                currentMapViewIndex === index
+                  ? "bg-orange-500"
+                  : "bg-orange-200"
+              } transition-colors`}
+            />
+          ))}
+        </div>
       </div>
 
       {/* Stats Summary Card */}
@@ -612,10 +316,18 @@ export default function TravelPage() {
         </div>
 
         <div className="h-[400px] overflow-y-auto">
-          {filteredCountries.length > 0 ? (
+          {loading ? (
+            <p className="text-center text-gray-600 py-10">
+              Loading countries...
+            </p>
+          ) : error ? (
+            <p className="text-center text-red-500 py-10">
+              Failed to load countries: {error}
+            </p>
+          ) : filteredCountries.length > 0 ? (
             filteredCountries.map((country) => (
               <button
-                key={country.name} // Use country name as key, now guaranteed unique by useMemo
+                key={country.name}
                 onClick={() => handleCountryToggle(country.name)}
                 className={`w-full text-left p-3 my-1 rounded-xl border-2 transition-all flex items-center gap-3 ${
                   selectedCountries[country.name]?.status === "visited"
@@ -639,7 +351,7 @@ export default function TravelPage() {
             ))
           ) : (
             <p className="text-center text-gray-600 py-10">
-              No countries found.
+              No countries found matching your search.
             </p>
           )}
         </div>

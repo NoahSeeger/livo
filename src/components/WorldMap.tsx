@@ -2,58 +2,59 @@
 
 import { ComposableMap, Geographies, Geography } from "react-simple-maps";
 
-const geoUrl = "https://cdn.jsdelivr.net/npm/world-atlas@2/countries-50m.json";
-
+// Define the CountryStatus type
 type CountryStatus = "visited" | "bucket-list" | "none";
 
+// Define the CountryData interface
 interface CountryData {
   name: string;
   status: CountryStatus;
-  flag: string; // Add flag for rendering in list
+  flag: string;
 }
+
+// Define the MapProjectionConfig interface
+interface MapProjectionConfig {
+  scale: number;
+  center: [number, number];
+}
+
+// URL for the TopoJSON map data
+const geoUrl = "https://cdn.jsdelivr.net/npm/world-atlas@2/countries-50m.json";
 
 export default function WorldMap({
   selectedCountries,
+  projectionConfig, // Receive projection config as a prop
 }: {
   selectedCountries: Record<string, CountryData>;
+  projectionConfig: MapProjectionConfig; // Type for the new prop
 }) {
   const getCountryStyle = (geo: any) => {
     const countryName = geo.properties.name;
     const status = selectedCountries[countryName]?.status || "none";
 
+    // Removed stroke and strokeWidth from baseStyle
     const baseStyle = {
-      stroke: "#FED7AA", // Orange-100 for border
-      strokeWidth: 0.5,
       outline: "none",
     };
 
-    const statusStyles = {
-      none: {
-        fill: "#FFF7ED", // Using a warm, light orange (Tailwind orange-50) for unselected
-        ...baseStyle,
-      },
-      visited: {
-        fill: "#F97316", // Orange-500 for visited
-        ...baseStyle,
-      },
-      "bucket-list": {
-        fill: "#FDBA74", // Orange-300 for bucket list
-        ...baseStyle,
-      },
+    const statusColors = {
+      none: "#cdcfd0", // A light, subtle grey for unselected countries (Tailwind gray-100)
+      visited: "#F97316", // Orange-500 for visited
+      "bucket-list": "#FDBA74", // Orange-300 for bucket list
     };
 
-    return statusStyles[status];
+    return {
+      fill: statusColors[status],
+      ...baseStyle,
+    };
   };
 
   return (
-    <div className="w-full aspect-[2/1]">
+    <div className="w-full aspect-[2/1] overflow-hidden">
       <ComposableMap
         projection="geoMercator"
-        projectionConfig={{
-          scale: 100, // Fixed scale
-          center: [0, 0], // Centered
-        }}
-        width={800} // Fixed width for better rendering consistency
+        projectionConfig={projectionConfig} // Use the passed projection config
+        width={800} // Fixed width for consistent map rendering
         height={400} // Fixed height
       >
         <Geographies geography={geoUrl}>
@@ -62,12 +63,10 @@ export default function WorldMap({
               const countryStyle = getCountryStyle(geo);
               return (
                 <Geography
-                  key={geo.rsmKey} // Use geo.rsmKey for unique keys provided by react-simple-maps
+                  key={geo.rsmKey} // Unique key for each geography element
                   geography={geo}
-                  // Apply fill and stroke directly as SVG attributes
                   fill={countryStyle.fill}
-                  stroke={countryStyle.stroke}
-                  strokeWidth={countryStyle.strokeWidth}
+                  // Removed stroke and strokeWidth here
                 />
               );
             })
