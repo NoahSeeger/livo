@@ -1,75 +1,79 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { ComposableMap, Geographies, Geography } from "react-simple-maps";
 
-interface WorldMapProps {
-  visitedCountries: string[];
-  wantToVisitCountries: string[];
-  onCountryClick: (countryCode: string) => void;
+const geoUrl = "https://cdn.jsdelivr.net/npm/world-atlas@2/countries-50m.json";
+
+type CountryStatus = "visited" | "bucket-list" | "none";
+
+interface CountryData {
+  name: string;
+  status: CountryStatus;
+  flag: string; // Add flag for rendering in list
 }
 
 export default function WorldMap({
-  visitedCountries,
-  wantToVisitCountries,
-  onCountryClick,
-}: WorldMapProps) {
-  const svgRef = useRef<SVGSVGElement>(null);
+  selectedCountries,
+}: {
+  selectedCountries: Record<string, CountryData>;
+}) {
+  const getCountryStyle = (geo: any) => {
+    const countryName = geo.properties.name;
+    const status = selectedCountries[countryName]?.status || "none";
 
-  useEffect(() => {
-    if (!svgRef.current) return;
+    const baseStyle = {
+      stroke: "#FED7AA", // Orange-100 for border
+      strokeWidth: 0.5,
+      outline: "none",
+    };
 
-    // Reset all countries to default state
-    const paths = svgRef.current.querySelectorAll("path");
-    paths.forEach((path) => {
-      path.style.fill = "#e5e7eb";
-      path.style.stroke = "#9ca3af";
-      path.style.strokeWidth = "0.5";
-      path.style.cursor = "pointer";
-      path.style.transition = "fill 0.3s ease";
+    const statusStyles = {
+      none: {
+        fill: "#FFF7ED", // Using a warm, light orange (Tailwind orange-50) for unselected
+        ...baseStyle,
+      },
+      visited: {
+        fill: "#F97316", // Orange-500 for visited
+        ...baseStyle,
+      },
+      "bucket-list": {
+        fill: "#FDBA74", // Orange-300 for bucket list
+        ...baseStyle,
+      },
+    };
 
-      // Add click handler
-      path.addEventListener("click", () => {
-        const countryCode = path.id;
-        if (countryCode) {
-          onCountryClick(countryCode);
-        }
-      });
-    });
-
-    // Color visited countries
-    visitedCountries.forEach((code) => {
-      const path = svgRef.current?.querySelector(`#${code}`);
-      if (path instanceof SVGPathElement) {
-        path.style.fill = "#3b82f6"; // blue-500
-      }
-    });
-
-    // Color want to visit countries
-    wantToVisitCountries.forEach((code) => {
-      const path = svgRef.current?.querySelector(`#${code}`);
-      if (path instanceof SVGPathElement) {
-        path.style.fill = "#eab308"; // yellow-500
-      }
-    });
-  }, [visitedCountries, wantToVisitCountries, onCountryClick]);
+    return statusStyles[status];
+  };
 
   return (
-    <div className="w-full overflow-auto">
-      <svg
-        ref={svgRef}
-        viewBox="0 0 1000 500"
-        className="w-full h-auto"
-        style={{ maxHeight: "70vh" }}
+    <div className="w-full aspect-[2/1]">
+      <ComposableMap
+        projection="geoMercator"
+        projectionConfig={{
+          scale: 100, // Fixed scale
+          center: [0, 0], // Centered
+        }}
+        width={800} // Fixed width for better rendering consistency
+        height={400} // Fixed height
       >
-        {/* World map SVG paths will be loaded here */}
-        {/* You can use a library like react-simple-maps or include the SVG paths directly */}
-        <path
-          id="US"
-          d="M100,100 L200,100 L200,200 L100,200 Z"
-          className="country"
-        />
-        {/* Add more country paths here */}
-      </svg>
+        <Geographies geography={geoUrl}>
+          {({ geographies }) =>
+            geographies.map((geo) => {
+              const countryStyle = getCountryStyle(geo);
+              return (
+                <Geography
+                  key={geo.rsmKey} // Use geo.rsmKey for unique keys provided by react-simple-maps
+                  geography={geo}
+                  // Apply fill and stroke directly as SVG attributes
+                  fill={countryStyle.fill}
+                  stroke={countryStyle.stroke}
+                  strokeWidth={countryStyle.strokeWidth}
+                />
+              );
+            })
+          }
+        </Geographies>
+      </ComposableMap>
     </div>
   );
 }
