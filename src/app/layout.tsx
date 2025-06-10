@@ -3,7 +3,7 @@ import { Inter } from "next/font/google";
 import "./globals.css";
 import Navigation from "@/components/Navigation";
 import SupabaseProvider from "@/components/providers/SupabaseProvider";
-import { registerServiceWorker } from "./service-worker";
+import { ServiceWorkerRegister } from "@/components/ServiceWorkerRegister";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -44,10 +44,6 @@ export default function RootLayout({
 }: {
   children: React.ReactNode;
 }) {
-  if (typeof window !== "undefined") {
-    registerServiceWorker();
-  }
-
   return (
     <html lang="en">
       <head>
@@ -58,6 +54,7 @@ export default function RootLayout({
         <link rel="apple-touch-icon" href="/icons/icon-192x192.png" />
       </head>
       <body className={`${inter.className} min-h-screen bg-background`}>
+        <ServiceWorkerRegister />
         <SupabaseProvider>
           <Navigation />
           <main className="min-h-screen">{children}</main>
