@@ -653,7 +653,7 @@ export default function TravelPage() {
         </div>
 
         {/* Carousel Dots for Stats Cards */}
-        <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 flex gap-2">
+        <div className="flex justify-center mt-4 gap-2">
           {slides.map((_, index) => (
             <button
               key={index}

@@ -27,7 +27,7 @@ export default function Navigation() {
   return (
     <>
       {/* Desktop Navigation */}
-      <nav className="hidden md:block bg-surface shadow-sm">
+      <nav className="hidden md:block bg-surface shadow-sm relative z-50">
         <div className="container mx-auto px-4">
           <div className="flex justify-between items-center h-16">
             <Link
@@ -70,7 +70,7 @@ export default function Navigation() {
       </nav>
 
       {/* Mobile Navigation */}
-      <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200">
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 z-50">
         <div className="flex justify-around items-center h-16">
           <Link
             href="/"
