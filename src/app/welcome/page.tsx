@@ -29,8 +29,8 @@ export default function WelcomePage() {
             </h1>
             <p className="text-xl text-gray-600 max-w-2xl mx-auto mb-10">
               Create, track, and achieve your bucket list goals in a warm and
-              friendly space. Let's make your dreams a reality, one step at a
-              time.
+              friendly space. Let&apos;s make your dreams a reality, one step at
+              a time.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
               <Link
@@ -124,9 +124,9 @@ export default function WelcomePage() {
                 </div>
               </div>
               <p className="text-gray-600">
-                "Livo helped me organize my travel goals and I've already
-                crossed off 5 destinations from my list! The interface is so
-                warm and inviting."
+                &quot;Livo helped me organize my travel goals and I&apos;ve
+                already crossed off 5 destinations from my list! The interface
+                is so warm and inviting.&quot;
               </p>
             </div>
             <div className="p-8 rounded-2xl bg-white border-2 border-orange-100 shadow-sm hover:shadow-md transition-all">
@@ -142,8 +142,8 @@ export default function WelcomePage() {
                 </div>
               </div>
               <p className="text-gray-600">
-                "The progress tracking feature keeps me motivated to achieve my
-                goals. Love the cozy, friendly design!"
+                &quot;The progress tracking feature keeps me motivated to
+                achieve my goals. Love the cozy, friendly design!&quot;
               </p>
             </div>
             <div className="p-8 rounded-2xl bg-white border-2 border-orange-100 shadow-sm hover:shadow-md transition-all">
@@ -161,8 +161,8 @@ export default function WelcomePage() {
                 </div>
               </div>
               <p className="text-gray-600">
-                "Finally found a platform that helps me organize my learning
-                goals in such a warm and welcoming way."
+                &quot;Finally found a platform that helps me organize my
+                learning goals in such a warm and welcoming way.&quot;
               </p>
             </div>
           </div>
@@ -183,7 +183,7 @@ export default function WelcomePage() {
           </h2>
           <p className="text-white/90 mb-8 max-w-2xl mx-auto">
             Join our warm community of dreamers and start turning your bucket
-            list into reality. We're here to make it cozy and fun!
+            list into reality. We&apos;re here to make it cozy and fun!
           </p>
           <Link
             href="/auth/signup"

@@ -18,6 +18,15 @@ interface MapProjectionConfig {
   center: [number, number];
 }
 
+interface GeoProperties {
+  name: string;
+}
+
+interface Geo {
+  properties: GeoProperties;
+  rsmKey: string;
+}
+
 // URL for the TopoJSON map data
 const geoUrl = "https://cdn.jsdelivr.net/npm/world-atlas@2/countries-50m.json";
 
@@ -28,7 +37,7 @@ export default function WorldMap({
   selectedCountries: Record<string, CountryData>;
   projectionConfig: MapProjectionConfig; // Type for the new prop
 }) {
-  const getCountryStyle = (geo: any) => {
+  const getCountryStyle = (geo: Geo) => {
     const countryName = geo.properties.name;
     const status = selectedCountries[countryName]?.status || "none";
 
@@ -58,8 +67,8 @@ export default function WorldMap({
         height={400} // Fixed height
       >
         <Geographies geography={geoUrl}>
-          {({ geographies }) =>
-            geographies.map((geo) => {
+          {({ geographies }: { geographies: Geo[] }) =>
+            geographies.map((geo: Geo) => {
               const countryStyle = getCountryStyle(geo);
               return (
                 <Geography

@@ -2,7 +2,6 @@ import type { Metadata, Viewport } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
 import Navigation from "@/components/Navigation";
-import { createClient } from "@/lib/supabaseServer";
 import SupabaseProvider from "@/components/providers/SupabaseProvider";
 import { registerServiceWorker } from "./service-worker";
 

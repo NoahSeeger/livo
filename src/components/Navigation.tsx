@@ -1,13 +1,12 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
 import { Home, Map, Target, LogOut } from "lucide-react";
 import { useSupabase } from "./providers/SupabaseProvider";
 
 export default function Navigation() {
   const pathname = usePathname();
-  const router = useRouter();
   const { supabase, session } = useSupabase();
 
   const handleSignOut = async () => {

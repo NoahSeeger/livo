@@ -86,9 +86,13 @@ export async function upsertTravelExperience(
     }
 
     return { success: true };
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Unexpected error in upsertTravelExperience:", error);
-    return { success: false, error: error.message };
+    return {
+      success: false,
+      error:
+        error instanceof Error ? error.message : "An unknown error occurred.",
+    };
   }
 }
 

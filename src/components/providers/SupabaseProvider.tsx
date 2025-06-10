@@ -3,11 +3,12 @@
 import { createContext, useContext, useEffect, useState } from "react";
 import { createBrowserClient } from "@supabase/ssr";
 import { useRouter } from "next/navigation";
+import { Session } from "@supabase/supabase-js";
 
 const Context = createContext<
   | {
       supabase: ReturnType<typeof createBrowserClient>;
-      session: any;
+      session: Session | null;
     }
   | undefined
 >(undefined);
@@ -23,7 +24,7 @@ export default function SupabaseProvider({
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
     )
   );
-  const [session, setSession] = useState<any>(null);
+  const [session, setSession] = useState<Session | null>(null);
   const router = useRouter();
 
   useEffect(() => {

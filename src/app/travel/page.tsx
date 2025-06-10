@@ -48,7 +48,7 @@ const TravelHintPopup: React.FC<TravelHintPopupProps> = ({
             onClick={onDisableShowAgain}
             className="w-full px-5 py-3 rounded-xl border-2 border-orange-100 text-orange-600 font-medium hover:bg-orange-50 transition-colors"
           >
-            Don't show again
+            Don&apos;t show again
           </button>
         </div>
       </div>
@@ -66,6 +66,14 @@ interface CountryData {
   flag: string;
   cca2: string; // Add cca2 for database interaction
   continents: string[]; // Add continents to CountryData
+}
+
+interface RestCountry {
+  name: { common: string };
+  flag: string;
+  cca2: string;
+  continents: string[];
+  unMember: boolean;
 }
 
 interface ContinentStats {
@@ -192,8 +200,8 @@ export default function TravelPage() {
 
         // Transform and merge country data with user experiences
         const transformedCountries: CountryData[] = countriesData
-          .filter((country: any) => country.unMember) // Filter for UN member countries
-          .map((country: any) => {
+          .filter((country: RestCountry) => country.unMember) // Filter for UN member countries
+          .map((country: RestCountry) => {
             const commonName = country.name.common;
             const userExperience = userExperiences.find(
               (exp) => exp.country_code === country.cca2
@@ -224,8 +232,8 @@ export default function TravelPage() {
 
         setFetchedCountries(uniqueTransformedData);
         setSelectedCountries(initialSelectedCountries); // Set initial selected countries based on DB
-      } catch (e: any) {
-        setError(e.message);
+      } catch (e: unknown) {
+        setError(e instanceof Error ? e.message : "An unknown error occurred");
       } finally {
         setLoading(false);
       }
@@ -250,7 +258,6 @@ export default function TravelPage() {
       { total: number; visited: number; bucketList: number }
     > = {};
     const allContinents = new Set<string>();
-    let totalWorldCountries = 0;
 
     fetchedCountries.forEach((country) => {
       if (country.continents && country.continents.length > 0) {
@@ -268,7 +275,6 @@ export default function TravelPage() {
           data[continentName].bucketList++;
         }
       }
-      totalWorldCountries++;
     });
 
     const visitedContinentsCount = Array.from(allContinents).filter(
@@ -362,8 +368,13 @@ export default function TravelPage() {
       } else {
         await upsertTravelExperience(userId, country.cca2, newStatus);
       }
-    } catch (dbError: any) {
+    } catch (dbError: unknown) {
       console.error("Failed to update database:", dbError);
+      setError(
+        dbError instanceof Error
+          ? dbError.message
+          : "An unknown error occurred while saving."
+      );
       // Revert UI change if DB update fails
       setSelectedCountries((prev) => ({
         ...prev,
@@ -401,19 +412,6 @@ export default function TravelPage() {
     setShowHint(false);
   };
 
-  // Circular progress bar styling (for percentages)
-  const calculateStrokeDasharray = (percentage: number) => {
-    const radius = 20; // Matches inner circle radius
-    const circumference = 2 * Math.PI * radius;
-    return `${circumference} ${circumference}`;
-  };
-
-  const calculateStrokeDashoffset = (percentage: number) => {
-    const radius = 20;
-    const circumference = 2 * Math.PI * radius;
-    return circumference - (percentage / 100) * circumference;
-  };
-
   interface CardProps {
     title: string;
     percentage: number;
@@ -423,81 +421,97 @@ export default function TravelPage() {
     showBucketList?: boolean;
   }
 
-  const StatsCardContent: React.FC<CardProps> = ({
-    title,
-    percentage,
-    visitedCount,
-    totalCount,
-    bucketListCount,
-    showBucketList = true,
-  }) => {
-    return (
-      <div className="bg-white rounded-2xl shadow-sm border-2 border-orange-100 p-6 w-full min-h-[200px]">
-        <h2 className="text-xl font-semibold mb-4">{title}</h2>
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-4">
+  const StatsCardContent: React.FC<CardProps> = useCallback(
+    ({
+      title,
+      percentage,
+      visitedCount,
+      totalCount,
+      bucketListCount,
+      showBucketList = true,
+    }) => {
+      // Circular progress bar styling (for percentages)
+      const calculateStrokeDasharray = () => {
+        const radius = 20; // Matches inner circle radius
+        const circumference = 2 * Math.PI * radius;
+        return `${circumference} ${circumference}`;
+      };
+
+      const calculateStrokeDashoffset = (percentage: number) => {
+        const radius = 20;
+        const circumference = 2 * Math.PI * radius;
+        return circumference - (percentage / 100) * circumference;
+      };
+
+      return (
+        <div className="bg-white rounded-2xl shadow-sm border-2 border-orange-100 p-6 w-full min-h-[200px]">
+          <h2 className="text-xl font-semibold mb-4">{title}</h2>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <div className="text-center">
+                <span className="text-4xl font-bold text-orange-500">
+                  {percentage}%
+                </span>
+                <p className="text-sm text-gray-600">
+                  {title.includes("Countries")
+                    ? "Countries"
+                    : title.split(" ")[title.split(" ").length - 1]}
+                </p>
+              </div>
+              {/* Circular progress bar */}
+              <div className="relative w-14 h-14">
+                <svg className="w-full h-full" viewBox="0 0 44 44">
+                  {/* Background circle */}
+                  <circle
+                    className="text-orange-100"
+                    strokeWidth="4"
+                    stroke="currentColor"
+                    fill="transparent"
+                    r="20"
+                    cx="22"
+                    cy="22"
+                  />
+                  {/* Progress circle */}
+                  <circle
+                    className="text-orange-500"
+                    strokeWidth="4"
+                    strokeDasharray={calculateStrokeDasharray()}
+                    strokeDashoffset={calculateStrokeDashoffset(percentage)}
+                    strokeLinecap="round"
+                    stroke="currentColor"
+                    fill="transparent"
+                    r="20"
+                    cx="22"
+                    cy="22"
+                    transform="rotate(-90 22 22)"
+                  />
+                </svg>
+              </div>
+            </div>
             <div className="text-center">
               <span className="text-4xl font-bold text-orange-500">
-                {percentage}%
+                {visitedCount}
               </span>
-              <p className="text-sm text-gray-600">
-                {title.includes("Countries")
-                  ? "Countries"
-                  : title.split(" ")[title.split(" ").length - 1]}
-              </p>
-            </div>
-            {/* Circular progress bar */}
-            <div className="relative w-14 h-14">
-              <svg className="w-full h-full" viewBox="0 0 44 44">
-                {/* Background circle */}
-                <circle
-                  className="text-orange-100"
-                  strokeWidth="4"
-                  stroke="currentColor"
-                  fill="transparent"
-                  r="20"
-                  cx="22"
-                  cy="22"
-                />
-                {/* Progress circle */}
-                <circle
-                  className="text-orange-500"
-                  strokeWidth="4"
-                  strokeDasharray={calculateStrokeDasharray(percentage)}
-                  strokeDashoffset={calculateStrokeDashoffset(percentage)}
-                  strokeLinecap="round"
-                  stroke="currentColor"
-                  fill="transparent"
-                  r="20"
-                  cx="22"
-                  cy="22"
-                  transform="rotate(-90 22 22)"
-                />
-              </svg>
+              <p className="text-sm text-gray-600">of {totalCount}</p>
             </div>
           </div>
-          <div className="text-center">
-            <span className="text-4xl font-bold text-orange-500">
-              {visitedCount}
-            </span>
-            <p className="text-sm text-gray-600">of {totalCount}</p>
-          </div>
+          {showBucketList && (
+            <div className="mt-6 flex justify-between text-gray-600">
+              <div className="flex items-center gap-2">
+                <MapPin className="h-4 w-4 text-orange-500" />
+                <span>Visited: {visitedCount}</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <Heart className="h-4 w-4 text-orange-300" />
+                <span>Bucket List: {bucketListCount}</span>
+              </div>
+            </div>
+          )}
         </div>
-        {showBucketList && (
-          <div className="mt-6 flex justify-between text-gray-600">
-            <div className="flex items-center gap-2">
-              <MapPin className="h-4 w-4 text-orange-500" />
-              <span>Visited: {visitedCount}</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <Heart className="h-4 w-4 text-orange-300" />
-              <span>Bucket List: {bucketListCount}</span>
-            </div>
-          </div>
-        )}
-      </div>
-    );
-  };
+      );
+    },
+    []
+  );
 
   const slides = useMemo(() => {
     const slideItems = [];
@@ -584,7 +598,7 @@ export default function TravelPage() {
     });
 
     return slideItems;
-  }, [stats, continentData]);
+  }, [stats, continentData, StatsCardContent]);
 
   return (
     <div className="min-h-screen bg-[#FFF9F5] font-sans text-gray-800 pb-20">
