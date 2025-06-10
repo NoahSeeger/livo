@@ -65,6 +65,19 @@ interface CountryData {
   status: CountryStatus;
   flag: string;
   cca2: string; // Add cca2 for database interaction
+  continents: string[]; // Add continents to CountryData
+}
+
+interface ContinentStats {
+  total: number;
+  visited: number;
+  bucketList: number;
+}
+
+interface ContinentDataMap extends Record<string, ContinentStats> {
+  World: ContinentStats;
+  Continents: ContinentStats;
+  Countries: ContinentStats;
 }
 
 // Define different map views for the carousel
@@ -99,9 +112,15 @@ export default function TravelPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showHint, setShowHint] = useState(false);
+  const [currentStatsCardIndex, setCurrentStatsCardIndex] = useState(0);
 
-  // Embla Carousel Hook
+  // Embla Carousel Hook for world map
   const [emblaRef, emblaApi] = useEmblaCarousel({ loop: false });
+
+  // Embla Carousel Hook for stats cards
+  const [emblaRefStatsCards, emblaApiStatsCards] = useEmblaCarousel({
+    loop: true,
+  });
 
   // Update currentMapViewIndex when Embla slide changes
   const onSelect = useCallback(() => {
@@ -117,6 +136,21 @@ export default function TravelPage() {
       emblaApi.off("select", onSelect); // Clean up event listener
     };
   }, [emblaApi, onSelect]);
+
+  // Update currentStatsCardIndex when Embla slide changes for stats cards
+  const onSelectStatsCard = useCallback(() => {
+    if (!emblaApiStatsCards) return;
+    setCurrentStatsCardIndex(emblaApiStatsCards.selectedScrollSnap());
+  }, [emblaApiStatsCards, setCurrentStatsCardIndex]);
+
+  useEffect(() => {
+    if (!emblaApiStatsCards) return;
+    onSelectStatsCard(); // Set initial index
+    emblaApiStatsCards.on("select", onSelectStatsCard); // Listen for slide changes
+    return () => {
+      emblaApiStatsCards.off("select", onSelectStatsCard); // Clean up event listener
+    };
+  }, [emblaApiStatsCards, onSelectStatsCard]);
 
   useEffect(() => {
     const loadAllData = async () => {
@@ -143,7 +177,9 @@ export default function TravelPage() {
       try {
         // 2. Fetch all countries from restcountries.com
         const [countriesResponse, userExperiences] = await Promise.all([
-          fetch("https://restcountries.com/v3.1/all?fields=name,flag,cca2"),
+          fetch(
+            "https://restcountries.com/v3.1/all?fields=name,flag,cca2,continents"
+          ),
           getTravelExperiences(currentUserId), // 3. Fetch user's saved experiences
         ]);
 
@@ -172,6 +208,7 @@ export default function TravelPage() {
               status: status,
               flag: country.flag,
               cca2: country.cca2,
+              continents: country.continents, // Add continents to CountryData
             };
             initialSelectedCountries[commonName] = countryDataItem;
             return countryDataItem;
@@ -205,6 +242,65 @@ export default function TravelPage() {
       }));
     }
     return []; // Return empty if not loaded
+  }, [fetchedCountries, selectedCountries]);
+
+  const continentData = useMemo((): ContinentDataMap => {
+    const data: Record<
+      string,
+      { total: number; visited: number; bucketList: number }
+    > = {};
+    const allContinents = new Set<string>();
+    let totalWorldCountries = 0;
+
+    fetchedCountries.forEach((country) => {
+      if (country.continents && country.continents.length > 0) {
+        const continentName = country.continents[0]; // Assuming one continent per country for simplicity
+        allContinents.add(continentName);
+
+        if (!data[continentName]) {
+          data[continentName] = { total: 0, visited: 0, bucketList: 0 };
+        }
+        data[continentName].total++;
+
+        if (selectedCountries[country.name]?.status === "visited") {
+          data[continentName].visited++;
+        } else if (selectedCountries[country.name]?.status === "bucket-list") {
+          data[continentName].bucketList++;
+        }
+      }
+      totalWorldCountries++;
+    });
+
+    const visitedContinentsCount = Array.from(allContinents).filter(
+      (continentName) => data[continentName].visited > 0
+    ).length;
+
+    return {
+      World: {
+        total: totalWorldCountries,
+        visited: Object.values(selectedCountries).filter(
+          (c) => c.status === "visited"
+        ).length,
+        bucketList: Object.values(selectedCountries).filter(
+          (c) => c.status === "bucket-list"
+        ).length,
+      },
+      Continents: {
+        total: allContinents.size,
+        visited: visitedContinentsCount,
+        bucketList: 0, // Not applicable for continents summary
+      },
+      Countries: {
+        total: totalWorldCountries,
+        visited: Object.values(selectedCountries).filter(
+          (c) => c.status === "visited"
+        ).length,
+        bucketList: Object.values(selectedCountries).filter(
+          (c) => c.status === "bucket-list"
+        ).length,
+      },
+      ...data,
+    };
   }, [fetchedCountries, selectedCountries]);
 
   const stats = useMemo(() => {
@@ -296,6 +392,15 @@ export default function TravelPage() {
       });
   }, [allCountries, searchQuery, selectedCountries]);
 
+  const handleCloseHint = () => {
+    setShowHint(false);
+  };
+
+  const handleDisableHint = () => {
+    localStorage.setItem("travelHintDisabled", "true");
+    setShowHint(false);
+  };
+
   // Circular progress bar styling (for percentages)
   const calculateStrokeDasharray = (percentage: number) => {
     const radius = 20; // Matches inner circle radius
@@ -309,14 +414,177 @@ export default function TravelPage() {
     return circumference - (percentage / 100) * circumference;
   };
 
-  const handleCloseHint = () => {
-    setShowHint(false);
+  interface CardProps {
+    title: string;
+    percentage: number;
+    visitedCount: number;
+    totalCount: number;
+    bucketListCount?: number;
+    showBucketList?: boolean;
+  }
+
+  const StatsCardContent: React.FC<CardProps> = ({
+    title,
+    percentage,
+    visitedCount,
+    totalCount,
+    bucketListCount,
+    showBucketList = true,
+  }) => {
+    return (
+      <div className="bg-white rounded-2xl shadow-sm border-2 border-orange-100 p-6 w-full min-h-[200px]">
+        <h2 className="text-xl font-semibold mb-4">{title}</h2>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <div className="text-center">
+              <span className="text-4xl font-bold text-orange-500">
+                {percentage}%
+              </span>
+              <p className="text-sm text-gray-600">
+                {title.includes("Countries")
+                  ? "Countries"
+                  : title.split(" ")[title.split(" ").length - 1]}
+              </p>
+            </div>
+            {/* Circular progress bar */}
+            <div className="relative w-14 h-14">
+              <svg className="w-full h-full" viewBox="0 0 44 44">
+                {/* Background circle */}
+                <circle
+                  className="text-orange-100"
+                  strokeWidth="4"
+                  stroke="currentColor"
+                  fill="transparent"
+                  r="20"
+                  cx="22"
+                  cy="22"
+                />
+                {/* Progress circle */}
+                <circle
+                  className="text-orange-500"
+                  strokeWidth="4"
+                  strokeDasharray={calculateStrokeDasharray(percentage)}
+                  strokeDashoffset={calculateStrokeDashoffset(percentage)}
+                  strokeLinecap="round"
+                  stroke="currentColor"
+                  fill="transparent"
+                  r="20"
+                  cx="22"
+                  cy="22"
+                  transform="rotate(-90 22 22)"
+                />
+              </svg>
+            </div>
+          </div>
+          <div className="text-center">
+            <span className="text-4xl font-bold text-orange-500">
+              {visitedCount}
+            </span>
+            <p className="text-sm text-gray-600">of {totalCount}</p>
+          </div>
+        </div>
+        {showBucketList && (
+          <div className="mt-6 flex justify-between text-gray-600">
+            <div className="flex items-center gap-2">
+              <MapPin className="h-4 w-4 text-orange-500" />
+              <span>Visited: {visitedCount}</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <Heart className="h-4 w-4 text-orange-300" />
+              <span>Bucket List: {bucketListCount}</span>
+            </div>
+          </div>
+        )}
+      </div>
+    );
   };
 
-  const handleDisableHint = () => {
-    localStorage.setItem("travelHintDisabled", "true");
-    setShowHint(false);
-  };
+  const slides = useMemo(() => {
+    const slideItems = [];
+
+    // 1. World card
+    slideItems.push(
+      <div key="world-stats">
+        <StatsCardContent
+          title="In Total World"
+          percentage={stats.visitedPercentage}
+          visitedCount={stats.visitedCount}
+          totalCount={continentData.World.total}
+          bucketListCount={stats.bucketListCount}
+          showBucketList={true}
+        />
+      </div>
+    );
+
+    // 2. Continents card
+    slideItems.push(
+      <div key="continent-stats">
+        <StatsCardContent
+          title="Continents"
+          percentage={
+            continentData.Continents.total > 0
+              ? Math.round(
+                  (continentData.Continents.visited /
+                    continentData.Continents.total) *
+                    100
+                )
+              : 0
+          }
+          visitedCount={continentData.Continents.visited}
+          totalCount={continentData.Continents.total}
+          showBucketList={false}
+        />
+      </div>
+    );
+
+    // 3. Countries card
+    slideItems.push(
+      <div key="country-stats">
+        <StatsCardContent
+          title="Countries"
+          percentage={stats.visitedPercentage}
+          visitedCount={stats.visitedCount}
+          totalCount={continentData.World.total}
+          showBucketList={false}
+        />
+      </div>
+    );
+
+    // 4. Individual continent cards
+    const orderedContinents = [
+      "Africa",
+      "Asia",
+      "Europe",
+      "North America",
+      "South America",
+      "Oceania",
+      "Antarctica",
+    ]; // Fixed order
+
+    orderedContinents.forEach((continentName) => {
+      const data = continentData[continentName] || {
+        total: 0,
+        visited: 0,
+        bucketList: 0,
+      }; // Default to zero if data not present
+      const percentage =
+        data.total > 0 ? Math.round((data.visited / data.total) * 100) : 0;
+      slideItems.push(
+        <div key={continentName}>
+          <StatsCardContent
+            title={continentName}
+            percentage={percentage}
+            visitedCount={data.visited}
+            totalCount={data.total}
+            bucketListCount={data.bucketList}
+            showBucketList={true}
+          />
+        </div>
+      );
+    });
+
+    return slideItems;
+  }, [stats, continentData]);
 
   return (
     <div className="min-h-screen bg-[#FFF9F5] font-sans text-gray-800 pb-20">
@@ -372,66 +640,33 @@ export default function TravelPage() {
       </div>
 
       {/* Stats Summary Card */}
-      <div className="max-w-xl mx-auto px-6 py-6 mt-6 bg-white rounded-2xl shadow-sm border-2 border-orange-100">
-        <h2 className="text-xl font-semibold mb-4">In Total</h2>
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <div className="text-center">
-              <span className="text-4xl font-bold text-orange-500">
-                {stats.visitedPercentage}%
-              </span>
-              <p className="text-sm text-gray-600">World</p>
+      <div
+        className="max-w-xl mx-auto px-6 py-6 mt-6 overflow-hidden relative embla"
+        ref={emblaRefStatsCards}
+      >
+        <div className="embla__container flex">
+          {slides.map((slide, index) => (
+            <div className="embla__slide flex-none w-full" key={index}>
+              {slide}
             </div>
-            {/* Circular progress bar */}
-            <div className="relative w-14 h-14">
-              <svg className="w-full h-full" viewBox="0 0 44 44">
-                {/* Background circle */}
-                <circle
-                  className="text-orange-100"
-                  strokeWidth="4"
-                  stroke="currentColor"
-                  fill="transparent"
-                  r="20"
-                  cx="22"
-                  cy="22"
-                />
-                {/* Progress circle */}
-                <circle
-                  className="text-orange-500"
-                  strokeWidth="4"
-                  strokeDasharray={calculateStrokeDasharray(
-                    stats.visitedPercentage
-                  )}
-                  strokeDashoffset={calculateStrokeDashoffset(
-                    stats.visitedPercentage
-                  )}
-                  strokeLinecap="round"
-                  stroke="currentColor"
-                  fill="transparent"
-                  r="20"
-                  cx="22"
-                  cy="22"
-                  transform="rotate(-90 22 22)"
-                />
-              </svg>
-            </div>
-          </div>
-          <div className="text-center">
-            <span className="text-4xl font-bold text-orange-500">
-              {stats.visitedCount}
-            </span>
-            <p className="text-sm text-gray-600">Countries</p>
-          </div>
+          ))}
         </div>
-        <div className="mt-6 flex justify-between text-gray-600">
-          <div className="flex items-center gap-2">
-            <MapPin className="h-4 w-4 text-orange-500" />
-            <span>Visited: {stats.visitedCount}</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <Heart className="h-4 w-4 text-orange-300" />
-            <span>Bucket List: {stats.bucketListCount}</span>
-          </div>
+
+        {/* Carousel Dots for Stats Cards */}
+        <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 flex gap-2">
+          {slides.map((_, index) => (
+            <button
+              key={index}
+              onClick={() =>
+                emblaApiStatsCards && emblaApiStatsCards.scrollTo(index)
+              }
+              className={`w-2 h-2 rounded-full ${
+                currentStatsCardIndex === index
+                  ? "bg-orange-500"
+                  : "bg-orange-200"
+              } transition-colors`}
+            />
+          ))}
         </div>
       </div>
 
