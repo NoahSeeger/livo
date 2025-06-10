@@ -11,6 +11,51 @@ import {
   deleteTravelExperience,
 } from "@/lib/travelDb"; // Import Supabase functions
 
+interface TravelHintPopupProps {
+  onClose: () => void;
+  onDisableShowAgain: () => void;
+}
+
+const TravelHintPopup: React.FC<TravelHintPopupProps> = ({
+  onClose,
+  onDisableShowAgain,
+}) => {
+  return (
+    <div className="fixed inset-0 bg-black/20 flex items-center justify-center p-4 z-[9999]">
+      <div className="bg-white rounded-2xl p-6 shadow-xl max-w-sm w-full mx-auto text-center border-2 border-orange-100">
+        <h3 className="text-2xl font-bold text-gray-800 mb-4">
+          How to use the map
+        </h3>
+        <p className="text-base text-gray-600 mb-6 leading-relaxed flex flex-col items-start text-left mx-auto max-w-fit">
+          <span>
+            <strong className="text-orange-600">Tap 1.</strong> Visited
+          </span>
+          <span>
+            <strong className="text-orange-600">Tap 2.</strong> Want to Visit
+          </span>
+          <span>
+            <strong className="text-gray-500">Tap 3.</strong> Remove it
+          </span>
+        </p>
+        <div className="flex flex-col space-y-3">
+          <button
+            onClick={onClose}
+            className="w-full px-5 py-3 rounded-xl bg-orange-500 text-white font-medium hover:bg-orange-600 transition-colors shadow-lg"
+          >
+            Got it!
+          </button>
+          <button
+            onClick={onDisableShowAgain}
+            className="w-full px-5 py-3 rounded-xl border-2 border-orange-100 text-orange-600 font-medium hover:bg-orange-50 transition-colors"
+          >
+            Don't show again
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 // Removed getCountryFlag utility function as flag is directly from API
 
 type CountryStatus = "visited" | "bucket-list" | "none";
@@ -25,10 +70,22 @@ interface CountryData {
 // Define different map views for the carousel
 const mapViews = [
   // Adjusted center and scale for "World" to effectively remove Antarctica
-  { name: "World", projectionConfig: { scale: 120, center: [0, 10] } },
-  { name: "Europe", projectionConfig: { scale: 400, center: [15, 50] } },
-  { name: "Americas", projectionConfig: { scale: 150, center: [-80, 0] } },
-  { name: "Asia", projectionConfig: { scale: 200, center: [90, 20] } },
+  {
+    name: "World",
+    projectionConfig: { scale: 120, center: [0, 10] as [number, number] },
+  },
+  {
+    name: "Europe",
+    projectionConfig: { scale: 400, center: [15, 50] as [number, number] },
+  },
+  {
+    name: "Americas",
+    projectionConfig: { scale: 150, center: [-80, 0] as [number, number] },
+  },
+  {
+    name: "Asia",
+    projectionConfig: { scale: 200, center: [90, 20] as [number, number] },
+  },
 ];
 
 export default function TravelPage() {
@@ -41,6 +98,7 @@ export default function TravelPage() {
   const [fetchedCountries, setFetchedCountries] = useState<CountryData[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [showHint, setShowHint] = useState(false);
 
   // Embla Carousel Hook
   const [emblaRef, emblaApi] = useEmblaCarousel({ loop: false });
@@ -64,6 +122,12 @@ export default function TravelPage() {
     const loadAllData = async () => {
       setLoading(true);
       setError(null);
+
+      // Check local storage for hint preference
+      const hintDisabled = localStorage.getItem("travelHintDisabled");
+      if (!hintDisabled) {
+        setShowHint(true);
+      }
 
       // 1. Get User ID
       const currentUserId = await getCurrentUserId();
@@ -245,6 +309,15 @@ export default function TravelPage() {
     return circumference - (percentage / 100) * circumference;
   };
 
+  const handleCloseHint = () => {
+    setShowHint(false);
+  };
+
+  const handleDisableHint = () => {
+    localStorage.setItem("travelHintDisabled", "true");
+    setShowHint(false);
+  };
+
   return (
     <div className="min-h-screen bg-[#FFF9F5] font-sans text-gray-800 pb-20">
       {/* Header with "been" inspired style */}
@@ -424,6 +497,13 @@ export default function TravelPage() {
           )}
         </div>
       </div>
+
+      {showHint && (
+        <TravelHintPopup
+          onClose={handleCloseHint}
+          onDisableShowAgain={handleDisableHint}
+        />
+      )}
     </div>
   );
 }

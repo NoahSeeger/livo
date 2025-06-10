@@ -8,20 +8,20 @@ export interface Goal {
   id: string;
   user_id: string;
   title: string;
-  description?: string;
+  description: string | null;
   category: GoalCategory;
-  status: GoalStatus;
+  completed: boolean;
+  completed_at: string | null;
   created_at: string;
-  completed_at?: string;
-  reminder_date?: string;
+  updated_at: string;
 }
 
 export type GoalCategory =
-  | "adventure"
-  | "health"
-  | "career"
   | "personal"
+  | "career"
+  | "health"
   | "travel"
+  | "adventure"
   | "other";
 
 export type GoalStatus = "not_started" | "in_progress" | "completed";
