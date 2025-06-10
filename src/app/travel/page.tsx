@@ -178,7 +178,7 @@ export default function TravelPage() {
         // 2. Fetch all countries from restcountries.com
         const [countriesResponse, userExperiences] = await Promise.all([
           fetch(
-            "https://restcountries.com/v3.1/all?fields=name,flag,cca2,continents"
+            "https://restcountries.com/v3.1/all?fields=name,flag,cca2,continents,unMember"
           ),
           getTravelExperiences(currentUserId), // 3. Fetch user's saved experiences
         ]);
@@ -191,8 +191,9 @@ export default function TravelPage() {
         const initialSelectedCountries: Record<string, CountryData> = {};
 
         // Transform and merge country data with user experiences
-        const transformedCountries: CountryData[] = countriesData.map(
-          (country: any) => {
+        const transformedCountries: CountryData[] = countriesData
+          .filter((country: any) => country.unMember) // Filter for UN member countries
+          .map((country: any) => {
             const commonName = country.name.common;
             const userExperience = userExperiences.find(
               (exp) => exp.country_code === country.cca2
@@ -212,8 +213,7 @@ export default function TravelPage() {
             };
             initialSelectedCountries[commonName] = countryDataItem;
             return countryDataItem;
-          }
-        );
+          });
 
         // Ensure unique countries by name in the fetched list
         const uniqueTransformedData = Array.from(
@@ -277,7 +277,7 @@ export default function TravelPage() {
 
     return {
       World: {
-        total: totalWorldCountries,
+        total: 195, // Explicitly set to 195 for UN members + observers
         visited: Object.values(selectedCountries).filter(
           (c) => c.status === "visited"
         ).length,
@@ -291,7 +291,7 @@ export default function TravelPage() {
         bucketList: 0, // Not applicable for continents summary
       },
       Countries: {
-        total: totalWorldCountries,
+        total: 195, // Explicitly set to 195 for UN members + observers
         visited: Object.values(selectedCountries).filter(
           (c) => c.status === "visited"
         ).length,
