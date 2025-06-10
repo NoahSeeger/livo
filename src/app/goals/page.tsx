@@ -203,7 +203,7 @@ export default function Goals() {
           </div>
           <button
             onClick={() => setShowAddForm(!showAddForm)}
-            className="fixed bottom-20 left-1/2 -translate-x-1/2 w-[calc(100%-2rem)] max-w-sm sm:static sm:w-auto inline-flex items-center justify-center px-4 py-3 rounded-xl bg-orange-500 text-white font-medium hover:bg-orange-600 transition-all shadow-lg hover:shadow-orange-200 z-50"
+            className="fixed bottom-[calc(4rem+env(safe-area-inset-bottom)+1rem)] left-1/2 -translate-x-1/2 w-[calc(100%-2rem)] max-w-sm sm:static sm:w-auto inline-flex items-center justify-center px-4 py-3 rounded-xl bg-orange-500 text-white font-medium hover:bg-orange-600 transition-all shadow-lg hover:shadow-orange-200 z-50"
           >
             <Plus className="h-5 w-5 mr-2" />
             Add Goal

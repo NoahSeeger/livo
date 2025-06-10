@@ -69,7 +69,7 @@ export default function Navigation() {
       </nav>
 
       {/* Mobile Navigation */}
-      <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 z-50">
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 z-50 pb-[env(safe-area-inset-bottom)]">
         <div className="flex justify-around items-center h-16">
           <Link
             href="/"
@@ -118,7 +118,7 @@ export default function Navigation() {
       </nav>
 
       {/* Add padding to the bottom of the content on mobile to account for the fixed navigation */}
-      <div className="md:hidden pb-16" />
+      {/* <div className="md:hidden pb-16" /> */}
     </>
   );
 }

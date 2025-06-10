@@ -182,10 +182,26 @@ export default function TravelPage() {
 
   const allCountries = useMemo(() => {
     if (fetchedCountries.length > 0) {
-      return fetchedCountries.map((fc) => ({
-        ...fc,
-        status: selectedCountries[fc.name]?.status || "none", // Ensure local state reflects status
-      }));
+      const sortedCountries = fetchedCountries
+        .map((fc) => ({
+          ...fc,
+          status: selectedCountries[fc.name]?.status || "none",
+        }))
+        .sort((a, b) => {
+          const statusOrder = {
+            visited: 1,
+            "bucket-list": 2,
+            none: 3,
+          };
+
+          // Primary sort by status
+          if (statusOrder[a.status] < statusOrder[b.status]) return -1;
+          if (statusOrder[a.status] > statusOrder[b.status]) return 1;
+
+          // Secondary sort by name if status is the same
+          return a.name.localeCompare(b.name);
+        });
+      return sortedCountries;
     }
     return [];
   }, [fetchedCountries, selectedCountries]);
@@ -341,7 +357,7 @@ export default function TravelPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#FFF9F5] font-sans text-gray-800 pb-20">
+    <div className="min-h-screen bg-[#FFF9F5] font-sans text-gray-800 pb-[calc(4rem+env(safe-area-inset-bottom)+1rem)]">
       {/* Header with "been" inspired style */}
       <div className="pt-10 pb-4 px-6">
         <div className="flex justify-between items-center mb-6">
@@ -380,7 +396,7 @@ export default function TravelPage() {
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-orange-500" />
         </div>
 
-        <div className="h-[400px] overflow-y-auto">
+        <div className="max-h-[400px] overflow-y-auto">
           {loading ? (
             <p className="text-center text-gray-600 py-10">
               Loading countries...
