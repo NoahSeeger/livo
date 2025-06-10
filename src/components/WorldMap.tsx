@@ -3,19 +3,27 @@
 import { ComposableMap, Geographies, Geography } from "react-simple-maps";
 
 // Define the CountryStatus type
-type CountryStatus = "visited" | "bucket-list" | "none";
+export type CountryStatus = "visited" | "bucket-list" | "none";
 
 // Define the CountryData interface
-interface CountryData {
+export interface CountryData {
   name: string;
   status: CountryStatus;
   flag: string;
+  cca2: string;
+  continents: string[];
 }
 
 // Define the MapProjectionConfig interface
 interface MapProjectionConfig {
   scale: number;
   center: [number, number];
+}
+
+interface WorldMapProps {
+  selectedCountries: Record<string, CountryData>;
+  projectionConfig: MapProjectionConfig;
+  onCountryClick: (countryName: string) => void;
 }
 
 interface GeoProperties {
@@ -33,10 +41,8 @@ const geoUrl = "https://cdn.jsdelivr.net/npm/world-atlas@2/countries-50m.json";
 export default function WorldMap({
   selectedCountries,
   projectionConfig, // Receive projection config as a prop
-}: {
-  selectedCountries: Record<string, CountryData>;
-  projectionConfig: MapProjectionConfig; // Type for the new prop
-}) {
+  onCountryClick, // Receive onCountryClick as a prop
+}: WorldMapProps) {
   const getCountryStyle = (geo: Geo) => {
     const countryName = geo.properties.name;
     const status = selectedCountries[countryName]?.status || "none";
@@ -69,12 +75,14 @@ export default function WorldMap({
         <Geographies geography={geoUrl}>
           {({ geographies }: { geographies: Geo[] }) =>
             geographies.map((geo: Geo) => {
+              const countryName = geo.properties.name; // Get country name for click handler
               const countryStyle = getCountryStyle(geo);
               return (
                 <Geography
                   key={geo.rsmKey} // Unique key for each geography element
                   geography={geo}
                   fill={countryStyle.fill}
+                  onClick={() => onCountryClick(countryName)} // Add onClick handler
                   // Removed stroke and strokeWidth here
                 />
               );
