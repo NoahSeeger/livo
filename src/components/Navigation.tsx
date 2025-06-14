@@ -2,22 +2,12 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, Map, Target, LogOut } from "lucide-react";
+import { Home, Map, Target, Settings } from "lucide-react";
 import { useSupabase } from "./providers/SupabaseProvider";
 
 export default function Navigation() {
   const pathname = usePathname();
   const { supabase, session } = useSupabase();
-
-  const handleSignOut = async () => {
-    try {
-      await supabase.auth.signOut();
-      // Force a hard navigation to ensure the session is cleared
-      window.location.href = "/welcome";
-    } catch (error) {
-      console.error("Error signing out:", error);
-    }
-  };
 
   const isActive = (path: string) => pathname === path;
 
@@ -57,12 +47,16 @@ export default function Navigation() {
               >
                 Travel Map
               </Link>
-              <button
-                onClick={handleSignOut}
-                className="text-sm font-medium text-gray-600 hover:text-orange-500 transition-colors"
+              <Link
+                href="/settings"
+                className={`text-sm font-medium transition-colors ${
+                  isActive("/settings")
+                    ? "text-orange-500"
+                    : "text-gray-600 hover:text-orange-500"
+                }`}
               >
-                Sign Out
-              </button>
+                Settings
+              </Link>
             </div>
           </div>
         </div>
@@ -107,13 +101,17 @@ export default function Navigation() {
             <span className="text-xs mt-1">Travel</span>
           </Link>
 
-          <button
-            onClick={handleSignOut}
-            className="flex flex-col items-center justify-center w-full h-full text-gray-600 hover:text-orange-500"
+          <Link
+            href="/settings"
+            className={`flex flex-col items-center justify-center w-full h-full ${
+              isActive("/settings")
+                ? "text-orange-500"
+                : "text-gray-600 hover:text-orange-500"
+            }`}
           >
-            <LogOut size={24} />
-            <span className="text-xs mt-1">Sign Out</span>
-          </button>
+            <Settings size={24} />
+            <span className="text-xs mt-1">Settings</span>
+          </Link>
         </div>
       </nav>
 
