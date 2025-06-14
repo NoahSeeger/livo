@@ -53,7 +53,7 @@ export default function SettingsPage() {
       return;
     }
 
-    const { data, error } = await supabase.auth.updateUser({
+    const { error } = await supabase.auth.updateUser({
       email: newEmail,
     });
 
@@ -83,7 +83,7 @@ export default function SettingsPage() {
       return;
     }
 
-    const { data, error } = await supabase.auth.updateUser({
+    const { error } = await supabase.auth.updateUser({
       data: { username: newUsername },
     });
 
@@ -111,7 +111,7 @@ export default function SettingsPage() {
       return;
     }
 
-    const { data, error } = await supabase.auth.updateUser({
+    const { error } = await supabase.auth.updateUser({
       password: password,
     });
 
@@ -156,7 +156,7 @@ export default function SettingsPage() {
   const handleDownloadAccountData = async () => {
     setLoading(true);
     try {
-      const { data: userData, error: userError } = await supabase
+      const { data: userData } = await supabase
         .from("users") // Assuming you have a 'users' table. Adjust if your user data is elsewhere.
         .select("*")
         .eq("id", session?.user?.id)
@@ -203,31 +203,15 @@ export default function SettingsPage() {
         return;
       }
 
-      const { data: goalsData, error: goalsError } = await supabase
+      const { data: goalsData } = await supabase
         .from("goals") // Assuming your goals table is named 'goals'
         .select("*")
         .eq("user_id", session.user.id);
 
-      if (goalsError) {
-        console.error("Supabase goals fetch error:", goalsError);
-        throw new Error(
-          `Failed to fetch goals: ${goalsError.message || "Unknown error"}`
-        );
-      }
-
-      const { data: travelData, error: travelError } = await supabase
+      const { data: travelData } = await supabase
         .from("travel_experiences") // Corrected table name
         .select("*")
         .eq("user_id", session.user.id);
-
-      if (travelError) {
-        console.error("Supabase travel experiences fetch error:", travelError);
-        throw new Error(
-          `Failed to fetch travel entries: ${
-            travelError.message || "Unknown error"
-          }`
-        );
-      }
 
       const dataToDownload = {
         goals: goalsData,
@@ -283,7 +267,7 @@ export default function SettingsPage() {
 
         let goalsImportedCount = 0;
         let travelImportedCount = 0;
-        let importErrors: string[] = [];
+        const importErrors: string[] = [];
 
         if (typeof importedData !== "object" || importedData === null) {
           throw new Error("Invalid JSON format. Expected an object.");
@@ -306,7 +290,7 @@ export default function SettingsPage() {
           for (const goal of importedData.goals) {
             try {
               // Ensure user_id is correct for imported data and remove existing id
-              const { id, ...goalToInsert } = goal;
+              const { ...goalToInsert } = goal;
               const { error } = await supabase
                 .from("goals")
                 .insert({ ...goalToInsert, user_id: session?.user?.id });
@@ -326,7 +310,7 @@ export default function SettingsPage() {
           for (const entry of importedData.travel_entries) {
             try {
               // Ensure user_id is correct for imported data and remove existing id
-              const { id, ...entryToInsert } = entry;
+              const { ...entryToInsert } = entry;
               const { error } = await supabase
                 .from("travel_experiences")
                 .insert({ ...entryToInsert, user_id: session?.user?.id });

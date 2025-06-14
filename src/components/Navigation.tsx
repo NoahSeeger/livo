@@ -7,7 +7,7 @@ import { useSupabase } from "./providers/SupabaseProvider";
 
 export default function Navigation() {
   const pathname = usePathname();
-  const { supabase, session } = useSupabase();
+  const { session } = useSupabase();
 
   const isActive = (path: string) => pathname === path;
 
