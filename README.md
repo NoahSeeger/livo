@@ -3,7 +3,7 @@
 Livo is a minimalist and inspiring web app designed to help users define, organize, and track their personal life goals and travel experiences. It combines goal-setting functionality with an interactive world map to visualize your global footp!
 rint.
 
-[livoapp](https://github.com/user-attachments/assets/481d96b0-dc3b-4df2-8b26-20ef69eb9239)
+![livoapp](https://github.com/user-attachments/assets/481d96b0-dc3b-4df2-8b26-20ef69eb9239)
 
 ## Features
 
